@@ -1,71 +1,46 @@
 import { useState, useEffect } from 'react';
-import { Loader } from './Loader';
-import { Searchbar } from './Searchbar';
-import { ImageGallery } from './ImageGallery';
-import { fetchRequest } from '../fetchRequest';
-import { LoadMoreBtn } from './Button';
-import { EmptyRequest } from './EmptyRequest';
-import { AppWrap, Starter } from '../styled';
-import StarterPicture from '../images/starter.svg';
+import { ContactForm } from './ContactForm';
+import { Filter } from './Filter';
+import { ContactList } from './ContactList';
+import { Section, PhonebookTitle, ContactTitle } from './styled';
 
 export const App = () => {
-  const [galleryArray, setGalleryArray] = useState([]);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isShowEmpty, setIsShowEmpty] = useState(false);
-  const [isShowStarter, setIsShowStarter] = useState(true);
+  const [contacts, setContacts] = useState(
+    JSON.parse(window.localStorage.getItem('CONTACTS')) ?? [
+      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+    ]
+  );
+  const [filter, setFilter] = useState(
+    JSON.parse(window.localStorage.getItem('FILTER')) ?? ''
+  );
 
   useEffect(() => {
-    if (search === '') {
-      return;
-    }
-    setIsShowStarter(false);
-    setIsShowEmpty(false);
-    setIsLoading(true);
-    fetchRequest(search, page)
-      .then(response => {
-        setGalleryArray(prev => [...prev, ...response.hits]);
-        setTotal(response.totalHits);
-
-        if (!response.totalHits) setIsShowEmpty(true);
-      })
-      .catch(err => alert(err))
-      .finally(() => setIsLoading(false));
-  }, [page, search]);
+    window.localStorage.setItem('FILTER', JSON.stringify(filter));
+  }, [filter]);
 
   useEffect(() => {
-    if (galleryArray.length <= 12) return;
-    window.scrollBy({
-      top: 520,
-      behavior: 'smooth',
-    });
-  }, [galleryArray]);
+    window.localStorage.setItem('CONTACTS', JSON.stringify(contacts));
+  }, [contacts]);
 
-  const handleSearchRequest = query => {
-    if (query === search || query === '') {
-      return;
-    }
-    setSearch(query);
-    setGalleryArray([]);
-    setPage(1);
-  };
+  const handleContactFormSubmit = data => setContacts(prev => [...prev, data]);
 
-  const handleLoadMoreClick = () => {
-    setPage(prev => prev + 1);
-  };
+  const handleFilter = string => setFilter(string);
+
+  const handleDelete = data =>
+    setContacts(prev => prev.filter(el => el.id !== data));
 
   return (
-    <AppWrap>
-      <Searchbar onSubmit={handleSearchRequest} />
-      {isShowStarter && <Starter src={StarterPicture} alt="starter picture" />}
-      {isShowEmpty && <EmptyRequest />}
-      <ImageGallery galleryArray={galleryArray} />
-      {isLoading && <Loader />}
-      {galleryArray.length !== 0 &&
-        galleryArray.length < total &&
-        !isLoading && <LoadMoreBtn handleLoadMoreClick={handleLoadMoreClick} />}
-    </AppWrap>
+    <Section>
+      <PhonebookTitle>Phonebook</PhonebookTitle>
+      <ContactForm {...{ contacts, handleContactFormSubmit }} />
+      <ContactTitle>Contacts</ContactTitle>
+      <Filter {...{ filter, handleFilter }} />
+      {contacts.length !== 0 && (
+        <ContactList {...{ contacts, filter, handleDelete }} />
+      )}
+    </Section>
   );
 };
